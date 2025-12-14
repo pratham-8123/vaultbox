@@ -1,219 +1,155 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useDispatch, useSelector } from 'react-redux'
-import { deleteFile } from '../store/fileSlice'
-import fileService from '../services/fileService'
-import api from '../services/api'
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import fileService from '../services/fileService';
+import api from '../services/api';
 
 function FileView() {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
-  const { user } = useSelector((state) => state.auth)
-  
-  const [file, setFile] = useState(null)
-  const [content, setContent] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [file, setFile] = useState(null);
+  const [content, setContent] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    loadFile()
-  }, [id])
+    const loadFile = async () => {
+      try {
+        const metadata = await fileService.getFile(id);
+        setFile(metadata);
 
-  const loadFile = async () => {
-    try {
-      setIsLoading(true)
-      const metadata = await fileService.getFile(id)
-      setFile(metadata)
+        // Fetch content for viewable files
+        if (metadata.viewable) {
+          const response = await api.get(`/files/${id}/download`, {
+            responseType: metadata.contentType.startsWith('image/') ? 'blob' : 'text',
+          });
 
-      // Load content for viewable files
-      if (metadata.viewable) {
-        const response = await api.get(`/files/${id}/download`, {
-          responseType: metadata.contentType.startsWith('image/') ? 'blob' : 'text',
-        })
-        
-        if (metadata.contentType.startsWith('image/')) {
-          const imageUrl = URL.createObjectURL(response.data)
-          setContent(imageUrl)
-        } else {
-          setContent(response.data)
+          if (metadata.contentType.startsWith('image/')) {
+            setContent(URL.createObjectURL(response.data));
+          } else {
+            setContent(response.data);
+          }
         }
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load file');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load file')
-    } finally {
-      setIsLoading(false)
+    };
+
+    loadFile();
+
+    return () => {
+      // Cleanup blob URL
+      if (content && typeof content === 'string' && content.startsWith('blob:')) {
+        URL.revokeObjectURL(content);
+      }
+    };
+  }, [id]);
+
+  const handleDownload = async () => {
+    if (file) {
+      await fileService.downloadFile(file.id, file.name);
     }
-  }
+  };
 
-  const handleDownload = () => {
-    fileService.downloadFile(id, file.name)
-  }
-
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this file?')) return
-    
-    setIsDeleting(true)
-    try {
-      await dispatch(deleteFile(id)).unwrap()
-      navigate('/')
-    } catch (err) {
-      setError(err)
-      setIsDeleting(false)
-    }
-  }
-
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  }
-
-  const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleString()
-  }
-
-  const canDelete = user?.role === 'ADMIN' || file?.ownerId === user?.id
+  const formatSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <svg className="animate-spin h-10 w-10 text-indigo-500" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <svg className="w-10 h-10 text-emerald-500 animate-spin" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <p className="text-slate-400">Loading file...</p>
+        </div>
       </div>
-    )
+    );
   }
 
   if (error) {
     return (
-      <div className="text-center py-20">
-        <div className="text-red-400 mb-4">{error}</div>
-        <button onClick={() => navigate('/')} className="btn btn-secondary">
-          Back to Dashboard
-        </button>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-white mb-2">Error</h2>
+          <p className="text-slate-400 mb-6">{error}</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors"
+          >
+            Go back
+          </button>
+        </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div>
-      {/* Back button */}
-      <button
-        onClick={() => navigate('/')}
-        className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Back to files
-      </button>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* File preview */}
-        <div className="lg:col-span-2">
-          <div className="card">
-            <h2 className="text-lg font-semibold text-white mb-4 truncate">{file?.name}</h2>
-            
-            <div className="bg-slate-800 rounded-lg overflow-hidden min-h-[400px] flex items-center justify-center">
-              {file?.contentType?.startsWith('image/') ? (
-                <img 
-                  src={content} 
-                  alt={file.name}
-                  className="max-w-full max-h-[600px] object-contain"
-                />
-              ) : file?.contentType === 'text/plain' || file?.contentType === 'application/json' ? (
-                <pre className="w-full h-full p-4 text-sm text-slate-300 overflow-auto whitespace-pre-wrap font-mono">
-                  {content}
-                </pre>
-              ) : (
-                <div className="text-center text-slate-400">
-                  <svg className="w-20 h-20 mx-auto mb-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <p>Preview not available for this file type</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* File info sidebar */}
-        <div>
-          <div className="card space-y-6">
-            <h3 className="text-lg font-semibold text-white">File Details</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-slate-400">File Name</p>
-                <p className="text-white font-medium truncate">{file?.name}</p>
-              </div>
-              
-              <div>
-                <p className="text-sm text-slate-400">Type</p>
-                <p className="text-white font-medium">{file?.contentType}</p>
-              </div>
-              
-              <div>
-                <p className="text-sm text-slate-400">Size</p>
-                <p className="text-white font-medium">{formatFileSize(file?.size)}</p>
-              </div>
-              
-              <div>
-                <p className="text-sm text-slate-400">Uploaded</p>
-                <p className="text-white font-medium">{formatDate(file?.uploadedAt)}</p>
-              </div>
-
-              {user?.role === 'ADMIN' && file?.ownerEmail && (
-                <div>
-                  <p className="text-sm text-slate-400">Owner</p>
-                  <p className="text-white font-medium">{file.ownerEmail}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-4 border-t border-slate-700 space-y-3">
+    <div className="min-h-screen bg-slate-950">
+      <header className="bg-slate-900 border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
               <button
-                onClick={handleDownload}
-                className="btn btn-primary w-full flex items-center justify-center gap-2"
+                onClick={() => navigate('/')}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                Download
               </button>
-
-              {canDelete && (
-                <button
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="btn btn-danger w-full flex items-center justify-center gap-2"
-                >
-                  {isDeleting ? (
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  )}
-                  Delete
-                </button>
-              )}
+              <div>
+                <h1 className="text-white font-medium truncate max-w-md">{file?.name}</h1>
+                <p className="text-sm text-slate-500">{formatSize(file?.size)}</p>
+              </div>
             </div>
+
+            <button
+              onClick={handleDownload}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download
+            </button>
           </div>
         </div>
-      </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {file?.contentType?.startsWith('image/') ? (
+          <div className="flex justify-center">
+            <img
+              src={content}
+              alt={file.name}
+              className="max-w-full max-h-[80vh] rounded-lg shadow-2xl"
+            />
+          </div>
+        ) : file?.contentType === 'application/json' ? (
+          <pre className="bg-slate-900 border border-slate-800 rounded-xl p-6 overflow-auto max-h-[80vh] text-sm text-slate-300">
+            {typeof content === 'string' 
+              ? JSON.stringify(JSON.parse(content), null, 2)
+              : content}
+          </pre>
+        ) : (
+          <pre className="bg-slate-900 border border-slate-800 rounded-xl p-6 overflow-auto max-h-[80vh] text-sm text-slate-300 whitespace-pre-wrap">
+            {content}
+          </pre>
+        )}
+      </main>
     </div>
-  )
+  );
 }
 
-export default FileView
-
+export default FileView;

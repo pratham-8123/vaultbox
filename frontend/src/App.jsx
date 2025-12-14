@@ -1,22 +1,22 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Dashboard from './pages/Dashboard'
-import FileView from './pages/FileView'
-import Layout from './components/layout/Layout'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Provider, useSelector } from 'react-redux';
+import store from './store';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import FileView from './pages/FileView';
 
 function PrivateRoute({ children }) {
-  const { isAuthenticated } = useSelector((state) => state.auth)
-  return isAuthenticated ? children : <Navigate to="/login" />
+  const { token } = useSelector((state) => state.auth);
+  return token ? children : <Navigate to="/login" replace />;
 }
 
 function PublicRoute({ children }) {
-  const { isAuthenticated } = useSelector((state) => state.auth)
-  return isAuthenticated ? <Navigate to="/" /> : children
+  const { token } = useSelector((state) => state.auth);
+  return !token ? children : <Navigate to="/" replace />;
 }
 
-function App() {
+function AppRoutes() {
   return (
     <Routes>
       <Route
@@ -39,15 +39,31 @@ function App() {
         path="/"
         element={
           <PrivateRoute>
-            <Layout />
+            <Dashboard />
           </PrivateRoute>
         }
-      >
-        <Route index element={<Dashboard />} />
-        <Route path="file/:id" element={<FileView />} />
-      </Route>
+      />
+      <Route
+        path="/view/:id"
+        element={
+          <PrivateRoute>
+            <FileView />
+          </PrivateRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }
 
-export default App
+function App() {
+  return (
+    <Provider store={store}>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </Provider>
+  );
+}
+
+export default App;
