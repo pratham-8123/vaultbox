@@ -6,74 +6,106 @@ A simplified Dropbox-like web application for secure file storage and management
 
 VaultBox allows users to upload, store, and manage files through a clean web interface. Files are stored securely in AWS S3 with metadata managed in MongoDB.
 
-### Features
+## Features
 
-- User authentication (register/login)
-- File upload (max 5MB, supported formats: txt, jpg, png, json)
-- File listing and management
-- File download and in-browser preview
-- Role-based access control (User/Admin)
+- **User Authentication**: Register/Login with JWT-based authentication
+- **File Upload**: Drag-and-drop or click to upload (max 5MB)
+- **Supported Formats**: txt, jpg, jpeg, png, json
+- **File Management**: List, download, view, and delete files
+- **In-Browser Preview**: View text files, JSON, and images directly
+- **Role-Based Access**:
+  - Users can only see and manage their own files
+  - Admin can view and manage all users' files
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React, Tailwind CSS, Redux |
-| Backend | Java Spring Boot |
-| Database | MongoDB |
+| Frontend | React 18, Tailwind CSS, Redux Toolkit |
+| Backend | Java 17, Spring Boot 3.2 |
+| Database | MongoDB 6 |
 | File Storage | AWS S3 |
 | Infrastructure | Docker, Docker Compose |
 
 ## Prerequisites
 
-- Docker Desktop
+- Docker Desktop (v20+)
 - AWS Account with S3 bucket
+- Git
 
 ## Quick Start
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd vaultbox
-   ```
+### 1. Clone the Repository
 
-2. **Configure environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your AWS credentials and preferences
-   ```
+```bash
+git clone <repository-url>
+cd vaultbox
+```
 
-3. **Run with Docker Compose**
-   ```bash
-   docker-compose up --build
-   ```
+### 2. Configure Environment
 
-4. **Access the application**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8080
-   - MongoDB Admin: http://localhost:8081
+Create a `.env` file in the project root:
 
-## Default Admin Account
+```env
+# MongoDB
+MONGO_ROOT_USERNAME=admin
+MONGO_ROOT_PASSWORD=admin123
+MONGODB_DATABASE=vaultbox
 
-On first startup, an admin account is created:
+# JWT
+JWT_SECRET=your-secret-key-here
+JWT_EXPIRATION_MS=86400000
+
+# AWS S3
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_S3_BUCKET=your-bucket-name
+AWS_REGION=ap-southeast-2
+
+# Admin Account
+ADMIN_EMAIL=admin@vaultbox.com
+ADMIN_PASSWORD=admin123
+```
+
+### 3. Run with Docker Compose
+
+```bash
+docker-compose up --build
+```
+
+### 4. Access the Application
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8080 |
+| MongoDB Admin | http://localhost:8081 |
+
+## Default Credentials
+
+**Admin Account** (created on first startup):
 - Email: `admin@vaultbox.com`
 - Password: `admin123`
 
-(Configurable via environment variables)
+**Mongo Express**:
+- Username: `admin`
+- Password: `admin123`
 
 ## API Endpoints
 
 ### Authentication
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/auth/register` | Register new user |
-| POST | `/api/auth/login` | Login |
+| POST | `/api/auth/login` | Login, returns JWT |
 | GET | `/api/auth/me` | Get current user |
 
 ### Files
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/files/upload` | Upload file |
+| POST | `/api/files/upload` | Upload file (multipart) |
 | GET | `/api/files` | List files |
 | GET | `/api/files/{id}` | Get file metadata |
 | GET | `/api/files/{id}/download` | Download file |
@@ -83,14 +115,62 @@ On first startup, an admin account is created:
 
 ```
 vaultbox/
-├── backend/          # Spring Boot application
-├── frontend/         # React application
+├── backend/
+│   ├── src/main/java/com/vaultbox/
+│   │   ├── config/          # Spring configuration
+│   │   ├── controller/      # REST controllers
+│   │   ├── dto/             # Data transfer objects
+│   │   ├── exception/       # Exception handling
+│   │   ├── model/           # MongoDB entities
+│   │   ├── repository/      # Data repositories
+│   │   ├── security/        # JWT authentication
+│   │   └── service/         # Business logic
+│   ├── Dockerfile
+│   └── pom.xml
+├── frontend/
+│   ├── src/
+│   │   ├── components/      # React components
+│   │   ├── pages/           # Page components
+│   │   ├── services/        # API services
+│   │   └── store/           # Redux store
+│   ├── Dockerfile
+│   └── package.json
 ├── docker-compose.yml
 ├── .env.example
 └── README.md
 ```
 
+## Development
+
+### Running Backend Locally
+
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+### Running Frontend Locally
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## File Storage
+
+Files are stored in S3 with the following key structure:
+```
+s3://bucket-name/vaultbox/{userId}/{uuid}_{filename}
+```
+
+## Security Notes
+
+- JWT tokens expire after 24 hours
+- Passwords are hashed with BCrypt
+- AWS credentials should never be committed to version control
+- All file operations are authorized per-user
+
 ## License
 
 This project was created as part of a technical assessment.
-
