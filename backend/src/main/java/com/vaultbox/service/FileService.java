@@ -160,8 +160,11 @@ public class FileService {
         if (contentType != null) {
             if (contentType.equals("text/plain") && allowed.contains("txt")) return true;
             if (contentType.equals("application/json") && allowed.contains("json")) return true;
+            if (contentType.equals("application/pdf") && allowed.contains("pdf")) return true;
             if (contentType.equals("image/jpeg") && (allowed.contains("jpg") || allowed.contains("jpeg"))) return true;
             if (contentType.equals("image/png") && allowed.contains("png")) return true;
+            if (contentType.equals("image/gif") && allowed.contains("gif")) return true;
+            if (contentType.equals("image/webp") && allowed.contains("webp")) return true;
         }
 
         return false;

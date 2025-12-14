@@ -43,7 +43,8 @@ public class FileResponse {
         if (contentType == null) return false;
         return contentType.startsWith("image/") ||
                contentType.equals("text/plain") ||
-               contentType.equals("application/json");
+               contentType.equals("application/json") ||
+               contentType.equals("application/pdf");
     }
 }
 

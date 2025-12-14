@@ -31,7 +31,7 @@ admin:
 
 # File upload constraints
 file:
-  allowed-types: txt,jpg,jpeg,png,json
+  allowed-types: txt,pdf,jpg,jpeg,png,gif,webp,json
   max-size-mb: 5
 
 server:

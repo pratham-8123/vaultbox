@@ -60,6 +60,7 @@ function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                 placeholder="you@example.com"
+                autoComplete="off"
                 required
               />
             </div>
@@ -74,6 +75,7 @@ function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                 placeholder="••••••••"
+                autoComplete="new-password"
                 required
               />
             </div>

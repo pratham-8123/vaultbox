@@ -19,11 +19,14 @@ function FileView() {
 
         // Fetch content for viewable files
         if (metadata.viewable) {
+          const isBinary = metadata.contentType.startsWith('image/') || 
+                          metadata.contentType === 'application/pdf';
+          
           const response = await api.get(`/files/${id}/download`, {
-            responseType: metadata.contentType.startsWith('image/') ? 'blob' : 'text',
+            responseType: isBinary ? 'blob' : 'text',
           });
 
-          if (metadata.contentType.startsWith('image/')) {
+          if (isBinary) {
             setContent(URL.createObjectURL(response.data));
           } else {
             setContent(response.data);
@@ -134,6 +137,14 @@ function FileView() {
               src={content}
               alt={file.name}
               className="max-w-full max-h-[80vh] rounded-lg shadow-2xl"
+            />
+          </div>
+        ) : file?.contentType === 'application/pdf' ? (
+          <div className="w-full h-[80vh] rounded-xl overflow-hidden">
+            <iframe
+              src={content}
+              title={file.name}
+              className="w-full h-full border-0"
             />
           </div>
         ) : file?.contentType === 'application/json' ? (

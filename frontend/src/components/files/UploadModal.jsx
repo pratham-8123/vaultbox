@@ -10,15 +10,15 @@ function UploadModal({ isOpen, onClose }) {
   const dispatch = useDispatch();
   const { isUploading } = useSelector((state) => state.files);
 
-  const ALLOWED_TYPES = ['text/plain', 'image/jpeg', 'image/png', 'application/json'];
-  const ALLOWED_EXTENSIONS = ['.txt', '.jpg', '.jpeg', '.png', '.json'];
+  const ALLOWED_TYPES = ['text/plain', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/json', 'application/pdf'];
+  const ALLOWED_EXTENSIONS = ['.txt', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.json', '.pdf'];
   const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
   const validateFile = (file) => {
     const extension = '.' + file.name.split('.').pop().toLowerCase();
     
     if (!ALLOWED_TYPES.includes(file.type) && !ALLOWED_EXTENSIONS.includes(extension)) {
-      return 'File type not allowed. Allowed: txt, jpg, png, json';
+      return 'File type not allowed. Allowed: txt, pdf, jpg, png, gif, webp, json';
     }
     
     if (file.size > MAX_SIZE) {
@@ -132,7 +132,7 @@ function UploadModal({ isOpen, onClose }) {
             ref={fileInputRef}
             type="file"
             className="hidden"
-            accept=".txt,.jpg,.jpeg,.png,.json"
+            accept=".txt,.pdf,.jpg,.jpeg,.png,.gif,.webp,.json"
             onChange={handleFileSelect}
           />
 
@@ -172,7 +172,7 @@ function UploadModal({ isOpen, onClose }) {
                   </button>
                 </p>
                 <p className="text-slate-500 text-sm mt-1">
-                  txt, jpg, png, json • Max 5MB
+                  pdf, txt, jpg, png, gif, webp, json • Max 5MB
                 </p>
               </div>
             </div>
