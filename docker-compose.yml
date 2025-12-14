@@ -1,11 +1,12 @@
 services:
+  # MongoDB Database
   mongodb:
     image: mongo:6
     container_name: vaultbox-mongodb
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin123}
-      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:-vaultbox}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
     ports:
       - "27017:27017"
     volumes:
@@ -19,16 +20,17 @@ services:
       retries: 5
       start_period: 10s
 
+  # MongoDB Admin UI (for development/debugging)
   mongo-express:
     image: mongo-express:latest
     container_name: vaultbox-mongo-express
     restart: unless-stopped
     environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME:-admin}
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD:-admin123}
-      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-admin123}@mongodb:27017/
-      ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_ROOT_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_ROOT_PASSWORD}
     ports:
       - "8081:8081"
     depends_on:
@@ -37,23 +39,24 @@ services:
     networks:
       - vaultbox-network
 
+  # Spring Boot Backend API
   backend:
     build:
       context: ./backend
     container_name: vaultbox-backend
     environment:
       MONGODB_HOST: mongodb
-      MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
-      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin123}
-      MONGODB_DATABASE: ${MONGODB_DATABASE:-vaultbox}
+      MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGODB_DATABASE: ${MONGODB_DATABASE}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-vaultboxpt}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
       AWS_REGION: ${AWS_REGION:-ap-southeast-2}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@vaultbox.com}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     ports:
       - "8080:8080"
     depends_on:
@@ -62,6 +65,7 @@ services:
     networks:
       - vaultbox-network
 
+  # React Frontend
   frontend:
     build:
       context: ./frontend

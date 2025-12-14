@@ -10,6 +10,10 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+/**
+ * Utility class for JWT token generation and validation.
+ * Uses HMAC-SHA256 for token signing.
+ */
 @Component
 public class JwtTokenProvider {
 
@@ -19,9 +23,12 @@ public class JwtTokenProvider {
     @Value("${jwt.expiration}")
     private long jwtExpiration;
 
+    /**
+     * Creates a signing key from the JWT secret.
+     * Ensures minimum 256-bit key length for HS256 algorithm.
+     */
     private SecretKey getSigningKey() {
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
-        // Pad key to at least 256 bits (32 bytes) if necessary
         if (keyBytes.length < 32) {
             byte[] paddedKey = new byte[32];
             System.arraycopy(keyBytes, 0, paddedKey, 0, keyBytes.length);
@@ -57,6 +64,10 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
+    /**
+     * Validates the JWT token signature and expiration.
+     * Returns false for expired, malformed, or tampered tokens.
+     */
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
@@ -65,9 +76,7 @@ public class JwtTokenProvider {
                 .parseSignedClaims(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            // Token is invalid or expired
             return false;
         }
     }
 }
-

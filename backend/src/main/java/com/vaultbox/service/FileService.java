@@ -20,6 +20,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Service responsible for file operations including upload, download, list, and delete.
+ * Handles authorization checks to ensure users can only access their own files,
+ * while admins have access to all files.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -38,6 +43,10 @@ public class FileService {
 
     private static final long BYTES_PER_MB = 1024 * 1024;
 
+    /**
+     * Uploads a file to S3 and stores metadata in MongoDB.
+     * Validates file size and type before upload.
+     */
     public FileResponse uploadFile(MultipartFile file) {
         User currentUser = authService.getCurrentUser();
         
@@ -59,15 +68,17 @@ public class FileService {
         return FileResponse.from(metadata, currentUser.getEmail());
     }
 
+    /**
+     * Lists files based on user role.
+     * Admins see all files, regular users see only their own.
+     */
     public List<FileResponse> listFiles() {
         User currentUser = authService.getCurrentUser();
 
         List<FileMetadata> files;
         if (currentUser.getRole() == Role.ADMIN) {
-            // Admin sees all files
             files = fileRepository.findAllByOrderByUploadedAtDesc();
         } else {
-            // Regular users see only their files
             files = fileRepository.findByOwnerIdOrderByUploadedAtDesc(currentUser.getId());
         }
 
@@ -90,6 +101,10 @@ public class FileService {
         return getFileWithAccessCheck(fileId);
     }
 
+    /**
+     * Deletes a file from both S3 and MongoDB.
+     * Requires ownership or admin privileges.
+     */
     public void deleteFile(String fileId) {
         FileMetadata metadata = getFileWithAccessCheck(fileId);
         
@@ -99,18 +114,20 @@ public class FileService {
         log.info("File deleted: {} by user {}", fileId, authService.getCurrentUser().getEmail());
     }
 
+    /**
+     * Retrieves file metadata with authorization check.
+     * Throws AccessDeniedException if user doesn't own the file and isn't admin.
+     */
     private FileMetadata getFileWithAccessCheck(String fileId) {
         FileMetadata metadata = fileRepository.findById(fileId)
                 .orElseThrow(() -> new ResourceNotFoundException("File", "id", fileId));
 
         User currentUser = authService.getCurrentUser();
 
-        // Admin can access any file
         if (currentUser.getRole() == Role.ADMIN) {
             return metadata;
         }
 
-        // Regular users can only access their own files
         if (!metadata.getOwnerId().equals(currentUser.getId())) {
             throw new AccessDeniedException("You don't have permission to access this file");
         }
@@ -118,12 +135,14 @@ public class FileService {
         return metadata;
     }
 
+    /**
+     * Validates file before upload - checks size limit and allowed types.
+     */
     private void validateFile(MultipartFile file) {
         if (file.isEmpty()) {
             throw new FileUploadException("File is empty");
         }
 
-        // Check file size
         long maxBytes = (long) maxSizeMb * BYTES_PER_MB;
         if (file.getSize() > maxBytes) {
             throw new FileUploadException(
@@ -131,7 +150,6 @@ public class FileService {
             );
         }
 
-        // Check file type
         String contentType = file.getContentType();
         String filename = file.getOriginalFilename();
         
@@ -142,13 +160,17 @@ public class FileService {
         }
     }
 
+    /**
+     * Checks if file type is allowed by extension or MIME type.
+     * Uses both extension and content-type for robust validation.
+     */
     private boolean isAllowedFileType(String contentType, String filename) {
         Set<String> allowed = Arrays.stream(allowedTypes.split(","))
                 .map(String::trim)
                 .map(String::toLowerCase)
                 .collect(Collectors.toSet());
 
-        // Check by extension
+        // Primary check: file extension
         if (filename != null) {
             String extension = getFileExtension(filename).toLowerCase();
             if (allowed.contains(extension)) {
@@ -156,7 +178,7 @@ public class FileService {
             }
         }
 
-        // Also check by content type for common types
+        // Secondary check: MIME content type
         if (contentType != null) {
             if (contentType.equals("text/plain") && allowed.contains("txt")) return true;
             if (contentType.equals("application/json") && allowed.contains("json")) return true;
@@ -182,4 +204,3 @@ public class FileService {
         return FileResponse.from(metadata, ownerEmail);
     }
 }
-
