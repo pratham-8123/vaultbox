@@ -9,12 +9,11 @@ spring:
   
   data:
     mongodb:
-      # Connection URI built from environment variables - no defaults for credentials
-      uri: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@${MONGODB_HOST:localhost}:27017/${MONGODB_DATABASE:vaultbox}?authSource=admin
+      uri: mongodb://${MONGO_ROOT_USERNAME:admin}:${MONGO_ROOT_PASSWORD:admin123}@${MONGODB_HOST:localhost}:27017/${MONGODB_DATABASE:vaultbox}?authSource=admin
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:default-secret-key-for-development-only}
   expiration: ${JWT_EXPIRATION_MS:86400000}
 
 # AWS S3 Configuration
@@ -22,13 +21,13 @@ aws:
   access-key: ${AWS_ACCESS_KEY_ID}
   secret-key: ${AWS_SECRET_ACCESS_KEY}
   s3:
-    bucket: ${AWS_S3_BUCKET}
+    bucket: ${AWS_S3_BUCKET:vaultboxpt}
     region: ${AWS_REGION:ap-southeast-2}
 
-# Admin seed configuration - credentials must be provided via environment
+# Admin seed configuration
 admin:
-  email: ${ADMIN_EMAIL}
-  password: ${ADMIN_PASSWORD}
+  email: ${ADMIN_EMAIL:admin@vaultbox.com}
+  password: ${ADMIN_PASSWORD:admin123}
 
 # File upload constraints
 file:
