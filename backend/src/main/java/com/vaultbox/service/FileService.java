@@ -4,9 +4,11 @@ import com.vaultbox.dto.FileResponse;
 import com.vaultbox.exception.FileUploadException;
 import com.vaultbox.exception.ResourceNotFoundException;
 import com.vaultbox.model.FileMetadata;
+import com.vaultbox.model.Folder;
 import com.vaultbox.model.Role;
 import com.vaultbox.model.User;
 import com.vaultbox.repository.FileMetadataRepository;
+import com.vaultbox.repository.FolderRepository;
 import com.vaultbox.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +33,7 @@ import java.util.stream.Collectors;
 public class FileService {
 
     private final FileMetadataRepository fileRepository;
+    private final FolderRepository folderRepository;
     private final UserRepository userRepository;
     private final S3Service s3Service;
     private final AuthService authService;
@@ -46,13 +49,31 @@ public class FileService {
     /**
      * Uploads a file to S3 and stores metadata in MongoDB.
      * Validates file size and type before upload.
+     *
+     * @param file           The file to upload
+     * @param parentFolderId Optional parent folder ID (null for root level)
      */
-    public FileResponse uploadFile(MultipartFile file) {
+    public FileResponse uploadFile(MultipartFile file, String parentFolderId) {
         User currentUser = authService.getCurrentUser();
+        String normalizedParentId = normalizeId(parentFolderId);
         
         validateFile(file);
 
+        // Validate parent folder if specified
+        String parentPath = "";
+        if (normalizedParentId != null) {
+            Folder parentFolder = folderRepository.findById(normalizedParentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Folder", "id", normalizedParentId));
+            
+            // Verify user owns the parent folder
+            if (!parentFolder.getOwnerId().equals(currentUser.getId())) {
+                throw new AccessDeniedException("You don't have permission to upload to this folder");
+            }
+            parentPath = parentFolder.getPath();
+        }
+
         String s3Key = s3Service.uploadFile(file, currentUser.getId());
+        String filePath = parentPath + "/" + file.getOriginalFilename();
 
         FileMetadata metadata = FileMetadata.builder()
                 .originalName(file.getOriginalFilename())
@@ -60,18 +81,32 @@ public class FileService {
                 .contentType(file.getContentType())
                 .size(file.getSize())
                 .ownerId(currentUser.getId())
+                .parentFolderId(normalizedParentId)
+                .path(filePath)
                 .build();
 
         metadata = fileRepository.save(metadata);
-        log.info("File metadata saved: {} by user {}", metadata.getId(), currentUser.getEmail());
+        log.info("File uploaded: {} to folder {} by user {}", 
+                metadata.getId(), 
+                normalizedParentId != null ? normalizedParentId : "root", 
+                currentUser.getEmail());
 
         return FileResponse.from(metadata, currentUser.getEmail());
     }
 
     /**
+     * Uploads a file to root level (backward compatibility).
+     */
+    public FileResponse uploadFile(MultipartFile file) {
+        return uploadFile(file, null);
+    }
+
+    /**
      * Lists files based on user role.
      * Admins see all files, regular users see only their own.
+     * @deprecated Use BrowseService for folder-aware listing
      */
+    @Deprecated
     public List<FileResponse> listFiles() {
         User currentUser = authService.getCurrentUser();
 
@@ -118,7 +153,7 @@ public class FileService {
      * Retrieves file metadata with authorization check.
      * Throws AccessDeniedException if user doesn't own the file and isn't admin.
      */
-    private FileMetadata getFileWithAccessCheck(String fileId) {
+    public FileMetadata getFileWithAccessCheck(String fileId) {
         FileMetadata metadata = fileRepository.findById(fileId)
                 .orElseThrow(() -> new ResourceNotFoundException("File", "id", fileId));
 
@@ -195,6 +230,10 @@ public class FileService {
     private String getFileExtension(String filename) {
         int lastDot = filename.lastIndexOf('.');
         return lastDot > 0 ? filename.substring(lastDot + 1) : "";
+    }
+
+    private String normalizeId(String id) {
+        return (id == null || id.isBlank()) ? null : id;
     }
 
     private FileResponse toFileResponseWithOwner(FileMetadata metadata) {

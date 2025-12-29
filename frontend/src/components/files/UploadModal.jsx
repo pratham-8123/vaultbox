@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { uploadFile } from '../../store/fileSlice';
+import { uploadFile } from '../../store/browseSlice';
 
 function UploadModal({ isOpen, onClose }) {
   const [dragActive, setDragActive] = useState(false);
@@ -8,7 +8,7 @@ function UploadModal({ isOpen, onClose }) {
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
   const dispatch = useDispatch();
-  const { isUploading } = useSelector((state) => state.files);
+  const { isUploading, currentFolderId } = useSelector((state) => state.browse);
 
   const ALLOWED_TYPES = ['text/plain', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/json', 'application/pdf'];
   const ALLOWED_EXTENSIONS = ['.txt', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.json', '.pdf'];
@@ -72,7 +72,10 @@ function UploadModal({ isOpen, onClose }) {
     if (!selectedFile) return;
 
     try {
-      await dispatch(uploadFile(selectedFile)).unwrap();
+      await dispatch(uploadFile({ 
+        file: selectedFile, 
+        parentFolderId: currentFolderId 
+      })).unwrap();
       handleClose();
     } catch (err) {
       setError(err || 'Upload failed');

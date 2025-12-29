@@ -6,9 +6,17 @@ const fileService = {
     return response.data;
   },
 
-  async uploadFile(file) {
+  /**
+   * Upload a file to a specific folder
+   * @param {File} file - The file to upload
+   * @param {string|null} parentFolderId - Target folder ID, null for root
+   */
+  async uploadFile(file, parentFolderId = null) {
     const formData = new FormData();
     formData.append('file', file);
+    if (parentFolderId) {
+      formData.append('parentFolderId', parentFolderId);
+    }
 
     const response = await api.post('/files/upload', formData, {
       headers: {

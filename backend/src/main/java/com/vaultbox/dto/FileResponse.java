@@ -18,6 +18,8 @@ public class FileResponse {
     private Long size;
     private String ownerId;
     private String ownerEmail;
+    private String parentFolderId;
+    private String path;
     private LocalDateTime uploadedAt;
     private boolean viewable;
 
@@ -28,6 +30,8 @@ public class FileResponse {
                 .contentType(metadata.getContentType())
                 .size(metadata.getSize())
                 .ownerId(metadata.getOwnerId())
+                .parentFolderId(metadata.getParentFolderId())
+                .path(metadata.getPath())
                 .uploadedAt(metadata.getUploadedAt())
                 .viewable(isViewableType(metadata.getContentType()))
                 .build();
@@ -47,4 +51,3 @@ public class FileResponse {
                contentType.equals("application/pdf");
     }
 }
-

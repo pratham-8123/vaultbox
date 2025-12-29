@@ -20,12 +20,23 @@ public class FileController {
 
     private final FileService fileService;
 
+    /**
+     * Upload a file to a specific folder or root level.
+     *
+     * @param file           The file to upload
+     * @param parentFolderId Optional parent folder ID (null/empty for root)
+     */
     @PostMapping("/upload")
-    public ResponseEntity<FileResponse> uploadFile(@RequestParam("file") MultipartFile file) {
-        FileResponse response = fileService.uploadFile(file);
+    public ResponseEntity<FileResponse> uploadFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "parentFolderId", required = false) String parentFolderId) {
+        FileResponse response = fileService.uploadFile(file, parentFolderId);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * List all files (deprecated - use /api/browse instead).
+     */
     @GetMapping
     public ResponseEntity<List<FileResponse>> listFiles() {
         List<FileResponse> files = fileService.listFiles();
@@ -65,7 +76,7 @@ public class FileController {
         if (contentType == null) return false;
         return contentType.startsWith("image/") ||
                contentType.equals("text/plain") ||
-               contentType.equals("application/json");
+               contentType.equals("application/json") ||
+               contentType.equals("application/pdf");
     }
 }
-

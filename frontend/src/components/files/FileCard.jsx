@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { deleteFile } from '../../store/fileSlice';
+import { useNavigate } from 'react-router-dom';
+import { deleteFile } from '../../store/browseSlice';
 import fileService from '../../services/fileService';
 
 function FileCard({ file }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
 
   const isOwner = file.ownerId === user?.id;
@@ -25,6 +27,13 @@ function FileCard({ file }) {
       return (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        </svg>
+      );
+    }
+    if (type === 'application/pdf') {
+      return (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
         </svg>
       );
     }
@@ -58,7 +67,7 @@ function FileCard({ file }) {
   };
 
   const handleView = () => {
-    window.open(`/view/${file.id}`, '_blank');
+    navigate(`/view/${file.id}`);
   };
 
   const handleDelete = async () => {
@@ -75,7 +84,7 @@ function FileCard({ file }) {
   return (
     <div className="group bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 hover:bg-slate-800 hover:border-slate-600 transition-all">
       <div className="flex items-start justify-between mb-4">
-        <div className="w-12 h-12 bg-slate-700/50 rounded-lg flex items-center justify-center text-slate-400 group-hover:text-emerald-400 transition-colors">
+        <div className="w-12 h-12 bg-slate-700/50 rounded-lg flex items-center justify-center text-slate-400 group-hover:text-cyan-400 transition-colors">
           {getFileIcon()}
         </div>
         

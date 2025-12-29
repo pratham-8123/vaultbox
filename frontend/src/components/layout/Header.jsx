@@ -1,7 +1,7 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../../store/authSlice';
-import { clearFiles } from '../../store/fileSlice';
+import { resetBrowse } from '../../store/browseSlice';
 
 function Header() {
   const dispatch = useDispatch();
@@ -10,7 +10,7 @@ function Header() {
 
   const handleLogout = () => {
     dispatch(logout());
-    dispatch(clearFiles());
+    dispatch(resetBrowse());
     navigate('/login');
   };
 
